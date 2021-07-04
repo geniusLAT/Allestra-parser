@@ -32,7 +32,7 @@ Records=[]
 def Mes(message):
     print(message)
     label['text']=message
-    time.sleep(1)
+    
     #window.mainloop()
     #e2.delete(0,last=len(e2.get()))
     #e2.insert(0,text)
