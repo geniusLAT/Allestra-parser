@@ -17,7 +17,10 @@ import requests
 from bs4 import BeautifulSoup
 import csv
 import os
-
+from selenium import webdriver
+import tkinter as tk
+import threading
+import time
 
 URL='https://shop.allectra.com/products/210-d15-k50'
 HEADERS={'user-agent':'Mozilla/5.0 (Windows NT 6.1; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/83.0.4103.116 YaBrowser/20.7.2.124 Yowser/2.5 Safari/537.36', 'accept':'*/*'}
@@ -26,6 +29,13 @@ FILE='Table.csv'
 Records=[]
 
 
+def Mes(message):
+    print(message)
+    label['text']=message
+    time.sleep(1)
+    #window.mainloop()
+    #e2.delete(0,last=len(e2.get()))
+    #e2.insert(0,text)
 
 def get_html(url,params=None):
     r=requests.get(url,headers=HEADERS,params=params)
@@ -37,7 +47,7 @@ def get_pages_count(html):
     pagination=soup.find_all('a')
     for item in pagination:
         print(item.get('href'))
-    print("A")
+    Mes("A")
     
 def rec(html,linkToParse):
     
@@ -73,11 +83,12 @@ def rec(html,linkToParse):
     
     Records.append(Record)
     
-    if (len(Records)<1000):
-        forwardlink=soup.find('a',class_="forward-link")#Парсим ссылку на следующую шняжку
-        link=forwardlink.get('href')
-        print(link)
-        parse(link)
+    #Этот код используется в другой версии
+    #if (len(Records)<1000):
+    #    forwardlink=soup.find('a',class_="forward-link")#Парсим ссылку на следующую шняжку
+    #    link=forwardlink.get('href')
+    #    Mes(link)
+    #    parse(link)
 
 def get_content(html):
     soup=BeautifulSoup(html,'html.parser')
@@ -133,7 +144,7 @@ def open_saved_file(path):
     with open(path,'r', encoding="utf-8") as file:
         #s = get_content(file.read())
         s=file.readline()
-        print(len(file.read()))
+        Mes(len(file.read()))
         return s
     
 def parse(linkToParse):
@@ -143,24 +154,74 @@ def parse(linkToParse):
         #print('Соединение установлено')
         #print(html.text)
         N=len(Records)
-        print("Парсинг ссылки номер "+str(N))
+        Mes("Парсинг ссылки номер "+str(N))
         try:
             rec(html.text,linkToParse)
         except:
-            print("Возникла ошибка")
+            Mes("Возникла ошибка")
         
     else:
-        print('Соединение не установлено')
-        print(html.status_code)
+        Mes('Соединение не установлено')
+        Mes(html.status_code)
         
-def ParseAndSave():
-    URLs=['https://shop.allectra.com/products/210-d09-c40',
-          'https://shop.allectra.com/products/211-fs09-hv-sx',
-          'https://shop.allectra.com/products/211-fs15-hv-v2']
+def ParseAndSave(URLs):
     for urk in URLs:
        parse(urk)
-    save_file(Records,FILE)
+    save_file(Records,e2.get())
 #s=open_saved_file('y.txt')
 #one= open('1.txt',encoding="utf-8")
 #print(get_content(one.read()))
-ParseAndSave()
+#ParseAndSave()
+    
+def GetLinks():
+    URLs=[]
+    browser=webdriver.Chrome()
+    page=1
+    while(True):
+        browser.get("https://shop.allectra.com/products?page="+str(page))
+        links=browser.find_elements_by_class_name("title-link")
+        for link in links:
+           URLs.append(link.get_attribute("href"))
+        if(len(links)==0):
+            Mes("На странице "+str(page)+" найдено "+str(len(links))+" ссылок. Вероятно это последняя страница")
+            break
+            
+        else:
+            Mes("На странице "+str(page)+" найдено "+str(len(links))+" ссылок")
+            page=page+1
+    return URLs
+    #print(URLs)
+    #browser.find_element_by_class_name("ais-Pagination-item ais-Pagination-item--nextPage").click()
+    browser.quit()
+
+def Start():
+    label['text']="message"
+    Mes("Запущено")
+    #Эта штука запустится в два потока, чтобы не отпал интерфейс, пока работает основной код
+    t=threading.Thread(target=ParseAndSave(GetLinks()  ))
+    t.start()
+    print("Запуск потока")
+    
+def UUU():
+    label['text']="messageT" 
+    
+window = tk.Tk()
+label2 = tk.Label(text="Введите название файла, куда будет произведено сохранение")
+e2=tk.Entry(width=50)
+label3 = tk.Label(text="Пример: table.csv")
+Button=tk.Button(text="Начать парсинг",command=Start)
+label = tk.Label(text="Не запущено")
+
+
+label2.pack()
+label3.pack()
+e2.pack()
+Button.pack()    
+label.pack()
+window.mainloop()
+
+
+    
+    
+    
+    
